@@ -93,7 +93,17 @@ func (v *View) checkMetadata(ctx context.Context, f *File) ([]packages.Error, er
 	if v.reparseImports(ctx, f, f.filename) {
 		cfg := v.Config
 		cfg.Mode = packages.LoadImports
+
+		// A little trick to enable the server to get rid of the restriction about the running folders. Once there is
+		// an official fix, abandon this fix.
+		originDir := cfg.Dir
+		fdir := filepath.Dir(f.filename)
+		if !strings.HasPrefix(fdir, filepath.Join(os.Getenv("GOPATH"), "pkg")) {
+			cfg.Dir = fdir
+		}
 		pkgs, err := packages.Load(&cfg, fmt.Sprintf("file=%s", f.filename))
+		cfg.Dir = originDir
+
 		if len(pkgs) == 0 {
 			if err == nil {
 				err = fmt.Errorf("no packages found for %s", f.filename)
