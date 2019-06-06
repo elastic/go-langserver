@@ -309,40 +309,40 @@ func (fs FullSymMap) test(t *testing.T, s *ElasticServer) {
 		resultsMap[result.Symbol.Location.Range.Start.Line] = result
 	}
 
-	var datasMap map[float64]DetailSymInfo
-	datasMap = make(map[float64]DetailSymInfo)
-	// Rearrange the collect data.
+	var dataMap map[float64]DetailSymInfo
+	dataMap = make(map[float64]DetailSymInfo)
+	// Rearrange the collected data.
 	for src, data := range fs {
-		datasMap[src.Range.Start.Line] = data
+		dataMap[src.Range.Start.Line] = data
 	}
 
 	for index, _ := range resultsMap {
-		data, ok := datasMap[index]
+		data, ok := dataMap[index]
 		if !ok {
 			t.Errorf("Full Symbol: got unexpected result %v at %v", resultsMap[index], index)
 			continue
 		}
 
 		if data.Name != resultsMap[index].Symbol.Name {
-			t.Errorf("Full Symbol Name: for line %v got %v want %v", index, resultsMap[index].Symbol.Name, datasMap[index].Name)
+			t.Errorf("Full Symbol Name: for line %v got %v want %v", index, resultsMap[index].Symbol.Name, dataMap[index].Name)
 		}
 		if protocol.SymbolKind(data.Kind) != resultsMap[index].Symbol.Kind {
-			t.Errorf("Full Symbol Kind: for line %v got %v want %v", index, resultsMap[index].Symbol.Kind, protocol.SymbolKind(datasMap[index].Kind))
+			t.Errorf("Full Symbol Kind: for line %v got %v want %v", index, resultsMap[index].Symbol.Kind, protocol.SymbolKind(dataMap[index].Kind))
 		}
 		if data.ContainerName != resultsMap[index].Symbol.ContainerName {
-			t.Errorf("Full Symbol Container Name: for line %v got %v want %v", index, resultsMap[index].Symbol.ContainerName, datasMap[index].ContainerName)
+			t.Errorf("Full Symbol Container Name: for line %v got %v want %v", index, resultsMap[index].Symbol.ContainerName, dataMap[index].ContainerName)
 		}
 		if data.Qname != resultsMap[index].Qname {
-			t.Errorf("Full Symbol Qname: for line %v got %v want %v", index, resultsMap[index].Qname, datasMap[index].Qname)
+			t.Errorf("Full Symbol Qname: for line %v got %v want %v", index, resultsMap[index].Qname, dataMap[index].Qname)
 		}
 		if data.PkgLoc.Name != resultsMap[index].Package.Name {
-			t.Errorf("Full Pkg Name: for line %v got %v want %v", index, resultsMap[index].Package.Name, datasMap[index].PkgLoc.Name)
+			t.Errorf("Full Pkg Name: for line %v got %v want %v", index, resultsMap[index].Package.Name, dataMap[index].PkgLoc.Name)
 		}
 		if data.PkgLoc.Version != resultsMap[index].Package.Version {
-			t.Errorf("Full Pkg Version: for line %v got %v want %v", index, resultsMap[index].Package.Version, datasMap[index].PkgLoc.Version)
+			t.Errorf("Full Pkg Version: for line %v got %v want %v", index, resultsMap[index].Package.Version, dataMap[index].PkgLoc.Version)
 		}
 		if data.PkgLoc.RepoURI != resultsMap[index].Package.RepoURI {
-			t.Errorf("Full Pkg RepoURI: for line %v got %v want %v", index, resultsMap[index].Package.RepoURI, datasMap[index].PkgLoc.RepoURI)
+			t.Errorf("Full Pkg RepoURI: for line %v got %v want %v", index, resultsMap[index].Package.RepoURI, dataMap[index].PkgLoc.RepoURI)
 		}
 	}
 }
