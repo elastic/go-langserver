@@ -96,9 +96,7 @@ func (s *ElasticServer) RunElasticServer(ctx context.Context) error {
 func (s *ElasticServer) ElasticDocumentSymbol(ctx context.Context, params *protocol.DocumentSymbolParams, full bool, pkgLocator *protocol.PackageLocator) (symsInfo []protocol.SymbolInformation,
 	detailSyms []protocol.DetailSymbolInformation,
 	err error) {
-
 	docSyms, err := (*Server).DocumentSymbol(&s.Server, ctx, params)
-
 	var flattenDocumentSymbol func(*[]protocol.DocumentSymbol, string, string)
 	// Note: The reason why we construct the qname during the flatten process is that we can't construct the qname
 	// through the 'SymbolInformation.ContainerName' because of the possibilities of the 'ContainerName' collision.
