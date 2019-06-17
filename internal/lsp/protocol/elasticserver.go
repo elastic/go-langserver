@@ -197,6 +197,7 @@ func elasticServerHandler(log xlog.Logger, server ElasticServer) jsonrpc2.Handle
 			if err := server.ManageDeps(&params); err != nil {
 				log.Errorf(ctx, "%v", err)
 			}
+			params.Capabilities.TextDocument.Hover.ContentFormat = append(params.Capabilities.TextDocument.Hover.ContentFormat, "markdown")
 			resp, err := server.Initialize(ctx, &params)
 			if err := conn.Reply(ctx, r, resp, err); err != nil {
 				log.Errorf(ctx, "%v", err)
