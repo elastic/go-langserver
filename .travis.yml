@@ -26,18 +26,33 @@ before_install:
 script:
   - set -e
   - go test -v ./internal/lsp
-  - go build -o go-langserver $GOPATH/src/golang.org/x/tools/cmd/gopls
+  - go build -o ../go-langserver $GOPATH/src/golang.org/x/tools/cmd/gopls
+  - cd ..
 
 matrix:
   include:
-    - name: Unit Tests & Package | Linux, gomod=on
+    - name: Unit Tests & Package | Linux
       os: linux
       after_script:
         - curl -O https://dl.google.com/go/go1.12.7.linux-amd64.tar.gz
-        - tar xvzf go1.12.7.linux-amd64.tar.gz
+        - ls -all
+        - tar xzf go1.12.7.linux-amd64.tar.gz
+        - tar -zcf go-langserver.tar.gz go-langserver go1.12.7.linux-amd64
+        - ls -all
 
-    - name: Unit Tests & Package | OSX, gomod=on
+    - name: Unit Tests & Package | OSX
       os: osx
       after_script:
         - curl -O https://dl.google.com/go/go1.12.7.darwin-amd64.tar.gz
-        - tar xvzf go1.12.7.darwin-amd64.tar.gz
+        - ls -all
+        - tar xzf go1.12.7.darwin-amd64.tar.gz
+        - tar -zcf go-langserver.tar.gz go-langserver go1.12.7.darwin-amd64
+        - ls -all
+
+    - name: Unit Tests & Package | Windows
+      os: windows
+      script:
+        - curl -O https://dl.google.com/go/go1.12.7.windows-amd64.zip
+        - dir
+        - 7z e go1.12.7.windows-amd64.zip
+        - 7z a -r go-langserver.zip go-langserver go1.12.7.windows-amd64
