@@ -44,7 +44,7 @@ matrix:
         github_token: $GITHUB_TOKEN
         local_dir: go-langserver-linux-amd64.tar.gz
         on:
-          branch: release
+          branch: master
 
     - name: Unit Tests & Package | OSX
       os: osx
@@ -62,7 +62,7 @@ matrix:
         github_token: $GITHUB_TOKEN
         local_dir: go-langserver-darwin-amd64.tar.gz
         on:
-          branch: release
+          branch: master
 
     - name: Unit Tests & Package | Windows
       os: windows
@@ -83,4 +83,4 @@ matrix:
         github_token: $GITHUB_TOKEN
         local_dir: go-langserver-windows-amd64.zip
         on:
-          branch: release
+          branch: master
