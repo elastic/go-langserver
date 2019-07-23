@@ -18,8 +18,8 @@ git:
 
 env:
   - GO111MODULE=off GOPROXY=https://proxy.golang.org
-  global:
-    - secure: yde6nXZ8GhllLNN3O5ZqTlQJggynk3T+6I64kUogL+blXtJXoBKGWQTjrSWqnr/iK6w5Zukmx8d5FePQKZoZnllE+Hez94jonURf7Vc4tebfm/4y4wO+K0WBvNNzISnR5VBWXBTJntTuBKe6xnn7UALPxyKNuxfkmfd+OpO4wBh3Nw5/+SDnVtBvh4ALauL/WdMHk/Vr8Nhlb2niCokK2Yd2dZSrciTXAk6o1KJNETyVicn2YLQBb6/IKbTds4rSkmKGpUGbcmQOR8YRpFrmRvtGvHleRUnkorg8sEo0QtFCl/5AynL015x5CnceqSRBzCTKHYCpJOIkqGAa/WuAovorDSyBnS/VuhqteCTaoU5Vul8DhuUlggHorBzh6C0rsRFOryQN/J2wIkp5kb5N6cMIcA34HfcznsxoGLXgQFEfZdCHU4a9F6rTmcFGu4icwIE1BJPRhWIpPqHWg5KQYVDmPiNzHwjddGuL0qXSjbFHa4X0Utm4TSNPdX0P1xGaUjelfPXfe/hFOtZcrfGq+Y1TCp0uBKrnJUv1Mp6wG1T9KYn7ZvThM5rJK+VpZweH+fVWxIK0+8tQTp0fZCUPO2W+r+kAqfOc3XKCiIqp9HxfHTun3ILpwCPen+H2Mvdo9hnwF6tipoAwcmg3/zrOybFgDhVB62y1oW6jkjOhCVY=
+#  global:
+#    - secure: yde6nXZ8GhllLNN3O5ZqTlQJggynk3T+6I64kUogL+blXtJXoBKGWQTjrSWqnr/iK6w5Zukmx8d5FePQKZoZnllE+Hez94jonURf7Vc4tebfm/4y4wO+K0WBvNNzISnR5VBWXBTJntTuBKe6xnn7UALPxyKNuxfkmfd+OpO4wBh3Nw5/+SDnVtBvh4ALauL/WdMHk/Vr8Nhlb2niCokK2Yd2dZSrciTXAk6o1KJNETyVicn2YLQBb6/IKbTds4rSkmKGpUGbcmQOR8YRpFrmRvtGvHleRUnkorg8sEo0QtFCl/5AynL015x5CnceqSRBzCTKHYCpJOIkqGAa/WuAovorDSyBnS/VuhqteCTaoU5Vul8DhuUlggHorBzh6C0rsRFOryQN/J2wIkp5kb5N6cMIcA34HfcznsxoGLXgQFEfZdCHU4a9F6rTmcFGu4icwIE1BJPRhWIpPqHWg5KQYVDmPiNzHwjddGuL0qXSjbFHa4X0Utm4TSNPdX0P1xGaUjelfPXfe/hFOtZcrfGq+Y1TCp0uBKrnJUv1Mp6wG1T9KYn7ZvThM5rJK+VpZweH+fVWxIK0+8tQTp0fZCUPO2W+r+kAqfOc3XKCiIqp9HxfHTun3ILpwCPen+H2Mvdo9hnwF6tipoAwcmg3/zrOybFgDhVB62y1oW6jkjOhCVY=
 
 
 before_install:
@@ -41,7 +41,8 @@ matrix:
       deploy:
         provider: pages
         skip_cleanup: true
-        local_dir: go-langserver-linux-amd64.tar.gz
+        github_token: $GITHUB_TOKEN
+        local_dir: .
         on:
           branch: release
 
@@ -58,7 +59,8 @@ matrix:
       deploy:
         provider: pages
         skip_cleanup: true
-        local_dir: go-langserver-darwin-amd64.tar.gz
+        github_token: $GITHUB_TOKEN
+        local_dir: .
         on:
           branch: release
 
@@ -78,6 +80,7 @@ matrix:
       deploy:
         provider: pages
         skip_cleanup: true
-        local_dir: go-langserver-windows-amd64.zip
+        github_token: $GITHUB_TOKEN
+        local_dir: .
         on:
           branch: release

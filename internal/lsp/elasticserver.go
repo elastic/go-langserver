@@ -60,13 +60,13 @@ func NewElasticServer(cache source.Cache, stream jsonrpc2.Stream) *ElasticServer
 
 // RunElasticServerOnPort starts an LSP server on the given port and does not exit.
 // This function exists for debugging purposes.
-func RunElasticServerOnPort(ctx context.Context, cache source.Cache, port int, h func(s *ElasticServer)) error {
-	return RunElasticServerOnAddress(ctx, cache, fmt.Sprintf(":%v", port), h)
+func RunElasticServerOnPort(cache source.Cache, port int, h func(s *ElasticServer)) error {
+	return RunElasticServerOnAddress(cache, fmt.Sprintf(":%v", port), h)
 }
 
 // RunElasticServerOnAddress starts an LSP server on the given port and does not exit.
 // This function exists for debugging purposes.
-func RunElasticServerOnAddress(ctx context.Context, cache source.Cache, addr string, h func(s *ElasticServer)) error {
+func RunElasticServerOnAddress(cache source.Cache, addr string, h func(s *ElasticServer)) error {
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err
