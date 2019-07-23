@@ -35,14 +35,13 @@ matrix:
       script:
         - go test ./internal/lsp
         - go build -o ../go-langserver $GOPATH/src/golang.org/x/tools/cmd/gopls
+        - curl -o ../go1.12.7.linux-amd64.tar.gz https://dl.google.com/go/go1.12.7.linux-amd64.tar.gz
+        - tar xzf ../go1.12.7.linux-amd64.tar.gz -C ../
+        - mkdir build
+        - tar -zcf ./build/go-langserver-linux-amd64.tar.gz ../go-langserver ../go
       deploy:
         provider: pages
         skip_cleanup: true
-        script:
-          - curl -o ../go1.12.7.linux-amd64.tar.gz https://dl.google.com/go/go1.12.7.linux-amd64.tar.gz
-          - tar xzf ../go1.12.7.linux-amd64.tar.gz -C ../
-          - mkdir build
-          - tar -zcf ./build/go-langserver-linux-amd64.tar.gz ../go-langserver ../go
         github_token: $GITHUB_TOKEN
         local_dir: build
         on:
@@ -53,14 +52,13 @@ matrix:
       script:
         - go test ./internal/lsp
         - go build -o ../go-langserver $GOPATH/src/golang.org/x/tools/cmd/gopls
+        - curl -o ../go1.12.7.darwin-amd64.tar.gz https://dl.google.com/go/go1.12.7.darwin-amd64.tar.gz
+        - tar xzf ../go1.12.7.darwin-amd64.tar.gz -C ../
+        - mkdir build
+        - tar -zcf ./build/go-langserver-darwin-amd64.tar.gz ../go-langserver ../go
       deploy:
         provider: pages
         skip_cleanup: true
-        script:
-          - curl -o ../go1.12.7.darwin-amd64.tar.gz https://dl.google.com/go/go1.12.7.darwin-amd64.tar.gz
-          - tar xzf ../go1.12.7.darwin-amd64.tar.gz -C ../
-          - mkdir build
-          - tar -zcf ./build/go-langserver-darwin-amd64.tar.gz ../go-langserver ../go
         github_token: $GITHUB_TOKEN
         local_dir: build
         on:
@@ -72,14 +70,13 @@ matrix:
         # TODO(henrywong) fix the test failures on windows and enable the test.
         - go test ./internal/lsp
         - go build -o go-langserver $GOPATH/src/golang.org/x/tools/cmd/gopls
+        - curl -o ../go1.12.7.windows-amd64.zip https://dl.google.com/go/go1.12.7.windows-amd64.zip
+        - 7z x ../go1.12.7.windows-amd64.zip -ogo-toolchain
+        - mkdir build
+        - 7z a -r ./build/go-langserver-windows-amd64.zip go-langserver go-toolchain
       deploy:
         provider: pages
         skip_cleanup: true
-        script:
-          - curl -o ../go1.12.7.windows-amd64.zip https://dl.google.com/go/go1.12.7.windows-amd64.zip
-          - 7z x ../go1.12.7.windows-amd64.zip -ogo-toolchain
-          - mkdir build
-          - 7z a -r ./build/go-langserver-windows-amd64.zip go-langserver go-toolchain
         github_token: $GITHUB_TOKEN
         local_dir: build
         on:
