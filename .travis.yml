@@ -18,8 +18,6 @@ git:
 
 env:
   - GO111MODULE=off GOPROXY=https://proxy.golang.org
-#  global:
-#    - secure: yde6nXZ8GhllLNN3O5ZqTlQJggynk3T+6I64kUogL+blXtJXoBKGWQTjrSWqnr/iK6w5Zukmx8d5FePQKZoZnllE+Hez94jonURf7Vc4tebfm/4y4wO+K0WBvNNzISnR5VBWXBTJntTuBKe6xnn7UALPxyKNuxfkmfd+OpO4wBh3Nw5/+SDnVtBvh4ALauL/WdMHk/Vr8Nhlb2niCokK2Yd2dZSrciTXAk6o1KJNETyVicn2YLQBb6/IKbTds4rSkmKGpUGbcmQOR8YRpFrmRvtGvHleRUnkorg8sEo0QtFCl/5AynL015x5CnceqSRBzCTKHYCpJOIkqGAa/WuAovorDSyBnS/VuhqteCTaoU5Vul8DhuUlggHorBzh6C0rsRFOryQN/J2wIkp5kb5N6cMIcA34HfcznsxoGLXgQFEfZdCHU4a9F6rTmcFGu4icwIE1BJPRhWIpPqHWg5KQYVDmPiNzHwjddGuL0qXSjbFHa4X0Utm4TSNPdX0P1xGaUjelfPXfe/hFOtZcrfGq+Y1TCp0uBKrnJUv1Mp6wG1T9KYn7ZvThM5rJK+VpZweH+fVWxIK0+8tQTp0fZCUPO2W+r+kAqfOc3XKCiIqp9HxfHTun3ILpwCPen+H2Mvdo9hnwF6tipoAwcmg3/zrOybFgDhVB62y1oW6jkjOhCVY=
 
 
 before_install:
@@ -37,6 +35,7 @@ matrix:
         - go build -o ../go-langserver-linux-amd64 $GOPATH/src/golang.org/x/tools/cmd/gopls
         - curl -o ../go1.12.7.linux-amd64.tar.gz https://dl.google.com/go/go1.12.7.linux-amd64.tar.gz
         - tar xzf ../go1.12.7.linux-amd64.tar.gz -C ../
+        - rm ../go/bin/godoc & rm ../go/bin/gofmt & rm ../go/misc/benchcmp & rm ../go/misc/nacl/go_nacl* & rm -r ../go/pkg/tool/linux_amd64
         - mkdir build
         - tar -zcf ./build/go-langserver-linux-amd64.tar.gz ../go-langserver-linux-amd64 ../go
       deploy:
@@ -44,7 +43,6 @@ matrix:
         skip_cleanup: true
         github_token: $GITHUB_TOKEN
         local_dir: $GOPATH/src/golang.org/x/tools/build
-        target_branch: release
         on:
           branch: master
 
@@ -55,6 +53,7 @@ matrix:
         - go build -o ../go-langserver-darwin-amd64 $GOPATH/src/golang.org/x/tools/cmd/gopls
         - curl -o ../go1.12.7.darwin-amd64.tar.gz https://dl.google.com/go/go1.12.7.darwin-amd64.tar.gz
         - tar xzf ../go1.12.7.darwin-amd64.tar.gz -C ../
+        - rm ../go/bin/godoc & rm ../go/bin/gofmt & rm ../go/misc/benchcmp & rm ../go/misc/nacl/go_nacl* & rm -r ../go/pkg/tool/darwin_amd64
         - mkdir build
         - tar -zcf ./build/go-langserver-darwin-amd64.tar.gz ../go-langserver-darwin-amd64 ../go
       deploy:
@@ -62,7 +61,6 @@ matrix:
         skip_cleanup: true
         github_token: $GITHUB_TOKEN
         local_dir: $GOPATH/src/golang.org/x/tools/build
-        target_branch: release
         on:
           branch: master
 
@@ -74,13 +72,13 @@ matrix:
         - go build -o go-langserver-windows-amd64 $GOPATH/src/golang.org/x/tools/cmd/gopls
         - curl -o ../go1.12.7.windows-amd64.zip https://dl.google.com/go/go1.12.7.windows-amd64.zip
         - 7z x ../go1.12.7.windows-amd64.zip -ogo-toolchain
+        - rm go-toolchain/go/bin/godoc & rm go-toolchain/go/bin/gofmt & rm go-toolchain/go/misc/benchcmp & rm go-toolchain/go/misc/nacl/go_nacl* & rm -r go-toolchain/go/pkg/tool/windows_amd64
         - mkdir build
-        - 7z a -r ./build/go-langserver-windows-amd64.zip go-langserver-windows-amd64 go-toolchain
+        - 7z a -r ./build/go-langserver-windows-amd64.zip go-langserver-windows-amd64 go-toolchain/go
       deploy:
         provider: pages
         skip_cleanup: true
         github_token: $GITHUB_TOKEN
         local_dir: $GOPATH/src/golang.org/x/tools/build
-        target_branch: release
         on:
           branch: master
