@@ -75,6 +75,10 @@ matrix:
         - rm go-toolchain/go/bin/godoc & rm go-toolchain/go/bin/gofmt & rm go-toolchain/go/misc/benchcmp & rm go-toolchain/go/misc/nacl/go_nacl* & rm -r go-toolchain/go/pkg/tool/windows_amd64
         - mkdir build
         - 7z a -r ./build/go-langserver-windows-amd64.zip go-langserver-windows-amd64 go-toolchain/go
+        - pwd
+        - dir
+        - cd $GOPATH/src/golang.org/x/tools/build
+        - dir
       deploy:
         provider: pages
         skip_cleanup: true
