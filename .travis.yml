@@ -38,13 +38,6 @@ matrix:
         - rm ../go/bin/godoc & rm ../go/bin/gofmt & rm ../go/misc/benchcmp & rm ../go/misc/nacl/go_nacl* & rm -r ../go/pkg/tool/linux_amd64
         - mkdir build
         - tar -zcf ./build/go-langserver-linux-amd64.tar.gz ../go-langserver-linux-amd64 ../go
-      deploy:
-        provider: pages
-        skip_cleanup: true
-        github_token: $GITHUB_TOKEN
-        local_dir: $GOPATH/src/golang.org/x/tools/build
-        on:
-          branch: master
 
     - name: Unit Tests & Package | OSX
       os: osx
@@ -56,13 +49,6 @@ matrix:
         - rm ../go/bin/godoc & rm ../go/bin/gofmt & rm ../go/misc/benchcmp & rm ../go/misc/nacl/go_nacl* & rm -r ../go/pkg/tool/darwin_amd64
         - mkdir build
         - tar -zcf ./build/go-langserver-darwin-amd64.tar.gz ../go-langserver-darwin-amd64 ../go
-      deploy:
-        provider: pages
-        skip_cleanup: true
-        github_token: $GITHUB_TOKEN
-        local_dir: $GOPATH/src/golang.org/x/tools/build
-        on:
-          branch: master
 
     - name: Unit Tests & Package | Windows
       os: windows
@@ -75,14 +61,12 @@ matrix:
         - rm go-toolchain/go/bin/godoc & rm go-toolchain/go/bin/gofmt & rm go-toolchain/go/misc/benchcmp & rm go-toolchain/go/misc/nacl/go_nacl* & rm -r go-toolchain/go/pkg/tool/windows_amd64
         - mkdir build
         - 7z a -r ./build/go-langserver-windows-amd64.zip go-langserver-windows-amd64 go-toolchain/go
-        - pwd
-        - dir
-        - cd $GOPATH/src/golang.org/x/tools/build
-        - dir
-      deploy:
-        provider: pages
-        skip_cleanup: true
-        github_token: $GITHUB_TOKEN
-        local_dir: $GOPATH/src/golang.org/x/tools/build
-        on:
-          branch: master
+
+deploy:
+  provider: pages
+  skip_cleanup: true
+  github_token: $GITHUB_TOKEN
+  verbose: true
+  local_dir: $GOPATH/src/golang.org/x/tools/build
+  on:
+    branch: master
