@@ -20,10 +20,16 @@ build_script:
   - go build -o go-langserver-windows-amd64 c:\gopath\src\golang.org\x\tools\cmd\gopls
   - curl -o ../go1.12.7.windows-amd64.zip https://dl.google.com/go/go1.12.7.windows-amd64.zip
   - 7z x ../go1.12.7.windows-amd64.zip -o..
-  - cd .. & mkdir build
-  - rm go/bin/godoc & rm go/bin/gofmt & rm go/misc/benchcmp & rm go/misc/nacl/go_nacl* & rm -r go/pkg/tool/windows_amd64
-  - cd build
-  - 7z a -r go-langserver-windows-amd64.zip go-langserver-windows-amd64 ../go
+  - mkdir go-langserver-windows
+  - rm ../go/bin/godoc & rm ../go/bin/gofmt & rm ../go/misc/benchcmp & rm ../go/misc/nacl/go_nacl* & rm -r ../go/pkg/tool/windows_amd64
+  - 7z a -r ./go-langserver-windows/go-langserver-windows-amd64.zip go-langserver-windows-amd64 ../go
+
+branches:
+  only:
+    - master
+
+artifacts:
+  - path: go-langserver-windows
 
 deploy:
   release: go-langserver-windows-amd64-draft
@@ -32,7 +38,7 @@ deploy:
   auth_token:
     secure: $($env:github_access_token)
   draft: true
-  artifact: c:\gopath\src\golang.org\x\build\go-langserver-windows-amd64.zip
+  artifact: go-langserver-windows-amd64.zip
   on:
     branch: master
 
