@@ -1,0 +1,38 @@
+image: Visual Studio 2017
+
+clone_folder: c:\gopath\src\golang.org\x\tools
+
+environment:
+  GOPATH: c:\gopath
+  GO111MODULE: off
+  GOPROXY: "https://proxy.golang.org"
+  github_access_token:
+    secure: h4ICNdm1D4g1klCMU6lQ7t92lwIrzo2HHzqc9MJpZdibgfNNFNGwywHWyBa0KPpL
+  github_email:
+    secure: h0I1jhHT32GpepMnqGjwM+Fjyhf+WYtr5D1J+IkSdgg=
+
+stack: go 1.12.x
+
+build_script:
+  - go get golang.org/x/sync/errgroup
+  # TODO(henrywong) For now, there are problems about the windows test.
+  # - go test ./internal/lsp -v
+  - go build -o go-langserver-windows-amd64 c:\gopath\src\golang.org\x\tools\cmd\gopls
+  - curl -o ../go1.12.7.windows-amd64.zip https://dl.google.com/go/go1.12.7.windows-amd64.zip
+  - 7z x ../go1.12.7.windows-amd64.zip -o..
+  - cd .. & mkdir build
+  - rm go/bin/godoc & rm go/bin/gofmt & rm go/misc/benchcmp & rm go/misc/nacl/go_nacl* & rm -r go/pkg/tool/windows_amd64
+  - cd build
+  - 7z a -r go-langserver-windows-amd64.zip go-langserver-windows-amd64 ../go
+
+deploy:
+  release: go-langserver-windows-amd64-draft
+  description: 'Release Draft'
+  provider: Github
+  auth_token:
+    secure: $($env:github_access_token)
+  draft: true
+  artifact: c:\gopath\src\golang.org\x\build\go-langserver-windows-amd64.zip
+  on:
+    branch: master
+

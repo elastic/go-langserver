@@ -25,8 +25,6 @@ before_install:
 
 matrix:
   fast_finish: true
-  allow_failures:
-    - os: windows
   include:
     - name: Unit Tests & Package | Linux
       os: linux
@@ -65,27 +63,5 @@ matrix:
         verbose: true
         local_dir: $GOPATH/src/golang.org/x/tools/build
         target_branch: darwin_deploy
-        on:
-          branch: master
-
-    - name: Unit Tests & Package | Windows
-      os: windows
-      script:
-        # TODO(henrywong) fix the test failures on windows and enable the test.
-        # - go test ./internal/lsp
-        - go build -o go-langserver-windows-amd64 $GOPATH/src/golang.org/x/tools/cmd/gopls
-        - curl -o ../go1.12.7.windows-amd64.zip https://dl.google.com/go/go1.12.7.windows-amd64.zip
-        - 7z x ../go1.12.7.windows-amd64.zip -ogo-toolchain
-        - rm go-toolchain/go/bin/godoc & rm go-toolchain/go/bin/gofmt & rm go-toolchain/go/misc/benchcmp & rm go-toolchain/go/misc/nacl/go_nacl* & rm -r go-toolchain/go/pkg/tool/windows_amd64
-        - mkdir build
-        - 7z a -r ./build/go-langserver-windows-amd64.zip go-langserver-windows-amd64 go-toolchain/go
-        - choco install rsync
-      deploy:
-        provider: pages
-        skip_cleanup: true
-        github_token: $GITHUB_TOKEN
-        verbose: true
-        local_dir: $GOPATH/src/golang.org/x/tools/build
-        target_branch: windows_deploy
         on:
           branch: master
