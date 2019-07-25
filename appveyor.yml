@@ -32,13 +32,13 @@ artifacts:
   - path: go-langserver-windows
 
 deploy:
-  release: go-langserver-windows-amd64-draft
-  description: 'Release Draft'
-  provider: Github
-  auth_token:
-    secure: $($env:github_access_token)
-  draft: true
-  artifact: go-langserver-windows-amd64.zip
-  on:
-    branch: master
+  - provider: Github
+    release: go-langserver-windows-draft
+    description: 'Release Draft'
+    auth_token:
+      secure: $($env:github_access_token)
+    draft: true
+    artifact: go-langserver-windows-amd64.zip
+    on:
+      branch: master
 
