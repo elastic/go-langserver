@@ -80,7 +80,6 @@ matrix:
         - mkdir build
         - 7z a -r ./build/go-langserver-windows-amd64.zip go-langserver-windows-amd64 go-toolchain/go
         - choco install rsync
-        - rsync
       deploy:
         provider: pages
         skip_cleanup: true
