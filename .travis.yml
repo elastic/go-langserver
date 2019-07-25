@@ -79,12 +79,12 @@ matrix:
         - rm go-toolchain/go/bin/godoc & rm go-toolchain/go/bin/gofmt & rm go-toolchain/go/misc/benchcmp & rm go-toolchain/go/misc/nacl/go_nacl* & rm -r go-toolchain/go/pkg/tool/windows_amd64
         - mkdir build
         - 7z a -r ./build/go-langserver-windows-amd64.zip go-langserver-windows-amd64 go-toolchain/go
+        - choco install rsync
+        - rsync
       deploy:
         provider: pages
         skip_cleanup: true
         github_token: $GITHUB_TOKEN
-        before_deploy:
-          - choco install rsync
         verbose: true
         local_dir: $GOPATH/src/golang.org/x/tools/build
         target_branch: windows_deploy
