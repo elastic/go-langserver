@@ -1,4 +1,11 @@
+version: 1.0.{build}
+build:
+  verbosity: detailed
+
 image: Visual Studio 2017
+
+platform:
+  - x64
 
 clone_folder: c:\gopath\src\golang.org\x\tools
 
