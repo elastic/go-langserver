@@ -39,7 +39,7 @@ build_script:
   - rm go1.12.7.windows-%platform%.zip
 
 artifacts:
-  - path: go-langserver-windows\*.zip
+  - path: go-langserver-windows\*.tar.zip
     name: go1.12.7.windows-%platform%.tar.gz
 
 deploy:
