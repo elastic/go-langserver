@@ -40,7 +40,7 @@ build_script:
 
 artifacts:
   - path: go-langserver-windows\*.zip
-    name: go1.12.7.windows-%platform%.zip
+    name: go1.12.7.windows-%platform%.tar.gz
 
 deploy:
   - provider: GitHub
