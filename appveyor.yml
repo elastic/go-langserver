@@ -35,7 +35,8 @@ build_script:
   - 7z x go1.12.7.windows-%platform%.zip -o.
   - ps: Remove-Item -LiteralPath "./go/test" -Force -Recurse
   - 7z a -ttar go-langserver-windows-%platform%.tar go-langserver.exe go
-  - 7z a -tgzip go-langserver-windows-%platform%.tar.gz go-langserver-windows-%platform%.tar
+  - if %platform%==x64 7z a -tgzip go-langserver-windows-amd64.tar.gz go-langserver-windows-%platform%.tar
+  - if %platform%==x86 7z a -tgzip go-langserver-windows-386.tar.gz go-langserver-windows-%platform%.tar
   - rm go1.12.7.windows-%platform%.zip
 
 artifacts:
