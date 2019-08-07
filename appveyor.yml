@@ -43,6 +43,12 @@ artifacts:
   - path: go-langserver-windows\*.tar.gz
     name: go1.12.7.windows-%platform%.tar.gz
 
+deploy_script:
+  - git config --local user.name "henry wong"
+  - git config --local user.email "liushuai.wang@elastic.co"
+  - set APPVEYOR_REPO_TAG_NAME=$(git rev-parse --short HEAD)
+  - git tag $(APPVEYOR_REPO_TAG_NAME)
+
 deploy:
   - provider: GitHub
     tag: $(APPVEYOR_REPO_TAG_NAME)
@@ -53,6 +59,4 @@ deploy:
     draft: false
     force_update: true
     prerelease: false
-    on:
-      APPVEYOR_REPO_TAG: true # deploy on tag push only
 
