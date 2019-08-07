@@ -25,6 +25,13 @@ env:
 before_install:
   - go get golang.org/x/sync/errgroup
 
+before_deploy:
+  # Set up git user name and tag this commit
+  - git config --local user.name "henry wong"
+  - git config --local user.email "liushuai.wang@elastic.co"
+  - export TRAVIS_TAG=$(git rev-parse --short HEAD)
+  - git tag $TRAVIS_TAG
+
 matrix:
   fast_finish: true
   include:
@@ -51,7 +58,6 @@ matrix:
         overwrite: true
         on:
           all_branches: true
-          tags: true
 
     - name: Unit Tests & Package | Linux x86
       os: linux
@@ -76,7 +82,6 @@ matrix:
         overwrite: true
         on:
           all_branches: true
-          tags: true
 
     - name: Unit Tests & Package | OSX
       os: osx
@@ -102,4 +107,3 @@ matrix:
         overwrite: true
         on:
           all_branches: true
-          tags: true
