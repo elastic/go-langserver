@@ -24,17 +24,6 @@ env:
 before_install:
   - go get golang.org/x/sync/errgroup
 
-before_deploy:
-  - git config --local user.name "henry wong"
-  - git config --local user.email "liushuai.wang@elastic.co"
-  - export MY_TAG=$(git rev-parse --short HEAD);
-  - if [ $TRAVIS_OS_NAME == 'linux' ] && [ $TRAVIS_BRANCH == 'master' ]; then
-    git tag $MY_TAG;
-    fi
-  - if [ $TRAVIS_OS_NAME == 'linux' ] && [ $TRAVIS_BRANCH != 'master' ]; then
-    git tag $TRAVIS_BRANCH-$MY_TAG;
-    fi
-
 matrix:
   fast_finish: true
   include:
@@ -62,7 +51,7 @@ matrix:
         overwrite: true
         on:
           all_branches: true
-          MY_TAG: true
+          tags: true
 
     - name: Unit Tests & Package | Linux x86
       os: linux
@@ -75,6 +64,18 @@ matrix:
         - tar xzf go1.12.7.linux-386.tar.gz
         - rm -rf ./go/test
         - tar -zcf go-langserver-linux-386.tar.gz go-langserver go
+
+      before_deploy:
+        - git config --local user.name "henry wong"
+        - git config --local user.email "liushuai.wang@elastic.co"
+        - export MY_TAG=$(git rev-parse --short HEAD);
+        - if [ $TRAVIS_BRANCH == 'master' ]; then
+          git tag $MY_TAG;
+          fi
+        - if [ $TRAVIS_BRANCH != 'master' ]; then
+          git tag $TRAVIS_BRANCH-$MY_TAG;
+          fi
+
       deploy:
         provider: releases
         skip_cleanup: true
@@ -113,4 +114,4 @@ matrix:
         overwrite: true
         on:
           all_branches: true
-          MY_TAG: true
+          tags: true
