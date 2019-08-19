@@ -474,8 +474,8 @@ func collectWorkspaceFolderMetadata(metadata *WorkspaceFolderMeta) error {
 	rootPath := metadata.URI.Filename()
 	// Collect 'go.mod' and record them as workspace folders.
 	if err := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
-		dir := filepath.Dir(path)
-		if dir[0] == '.' {
+		base := filepath.Base(path)
+		if base[0] == '.' {
 			return filepath.SkipDir
 		} else if info.Name() == "go.mod" {
 			dir := filepath.Dir(path)
