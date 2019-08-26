@@ -38,6 +38,9 @@ func (s *Server) initialize(ctx context.Context, params *protocol.InitializePara
 		if opt, ok := opts["noIncrementalSync"].(bool); ok && opt {
 			s.textDocumentSyncKind = protocol.Full
 		}
+		if opt, ok := opts["installGoDependency"].(bool); ok && opt {
+			s.installGoDependency = true
+		}
 	}
 
 	// Default to using synopsis as a default for hover information.

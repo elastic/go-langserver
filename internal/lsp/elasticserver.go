@@ -189,10 +189,8 @@ type WorkspaceFolderMeta struct {
 // manageDeps will try its best to convert the folders to modules. The core functions, like deps downloading and deps
 // management, will be implemented in the package 'cache'.
 func (s ElasticServer) ManageDeps(folders *[]protocol.WorkspaceFolder) error {
-	// Note: For the upstream go langserver, granularity of the workspace folders is repository. But for the elastic go
-	// language server, there are repositories contain multiple modules. In order to handle the modules separately, we
-	// consider different modules as different workspace folders, so we can manage the dependency of different modules
-	// separately.
+	// In order to handle the modules separately, we consider different modules as different workspace folders, so we
+	// can manage the dependency of different modules separately.
 	for _, folder := range *folders {
 		metadata := &WorkspaceFolderMeta{}
 		if folder.URI != "" {

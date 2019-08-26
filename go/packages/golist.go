@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go/types"
+	"golang.org/x/tools/internal/lsp/protocol"
 	"hash/fnv"
 	"io/ioutil"
 	"log"
@@ -860,7 +861,7 @@ func invokeGo(cfg *Config, args ...string) (*bytes.Buffer, error) {
 	defer func(start time.Time) {
 		cfg.Logf("%s for %v, stderr: <<%s>>\n", time.Since(start), cmdDebugStr(cmd, args...), stderr)
 	}(time.Now())
-
+	protocol.AdjustGoListForVendorMode(&(cmd.Env), &(cmd.Args))
 	if err := cmd.Run(); err != nil {
 		// Check for 'go' executable not being found.
 		if ee, ok := err.(*exec.Error); ok && ee.Err == exec.ErrNotFound {

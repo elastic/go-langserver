@@ -8,8 +8,10 @@ import (
 	"context"
 
 	"golang.org/x/tools/internal/lsp/protocol"
+	"golang.org/x/tools/internal/lsp/telemetry/log"
 	"golang.org/x/tools/internal/span"
 	errors "golang.org/x/xerrors"
+	"os/exec"
 )
 
 func (s *Server) changeFolders(ctx context.Context, event protocol.WorkspaceFoldersChangeEvent) error {
@@ -31,6 +33,16 @@ func (s *Server) changeFolders(ctx context.Context, event protocol.WorkspaceFold
 }
 
 func (s *Server) addView(ctx context.Context, name string, uri span.URI) error {
+	if s.installGoDependency {
+		cmd := exec.Command("go", "mod", "download")
+		cmd.Dir = uri.Filename()
+		if err := cmd.Run(); err != nil {
+			log.Error(ctx, "failed to download the dependencies", err)
+		}
+	} else {
+		// If we disable the go dependency download, trying to find the deps from the vendor folder.
+		ctx = context.WithValue(ctx, "ENABLEVENDOR", true)
+	}
 	view := s.session.NewView(ctx, name, uri)
 	s.stateMu.Lock()
 	state := s.state

@@ -93,6 +93,11 @@ func (s *session) NewView(ctx context.Context, name string, folder span.URI) sou
 		},
 		ignoredURIs: make(map[span.URI]struct{}),
 	}
+	if enableVendor, ok := ctx.Value("ENABLEVENDOR").(bool); ok && enableVendor {
+		// Set 'GOPROXY=off' to disable the network access
+		v.env = append(v.env, "GOPROXY=off")
+		v.env = append(v.env, "ENABLEVENDOR=on")
+	}
 	// Preemptively build the builtin package,
 	// so we immediately add builtin.go to the list of ignored files.
 	v.buildBuiltinPkg(ctx)

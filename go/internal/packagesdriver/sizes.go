@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go/types"
+	"golang.org/x/tools/internal/lsp/protocol"
 	"log"
 	"os"
 	"os/exec"
@@ -125,6 +126,7 @@ func InvokeGo(ctx context.Context, env []string, dir string, usesExportData bool
 	cmd.Dir = dir
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
+	protocol.AdjustGoListForVendorMode(&(cmd.Env), &(cmd.Args))
 	if err := cmd.Run(); err != nil {
 		exitErr, ok := err.(*exec.ExitError)
 		if !ok {

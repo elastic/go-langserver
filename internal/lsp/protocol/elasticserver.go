@@ -14,6 +14,22 @@ type ElasticServer interface {
 	ManageDeps(folders *[]WorkspaceFolder) error
 }
 
+func AdjustGoListForVendorMode(env *[]string, args *[]string) {
+	l := len(*env)
+	for i := range *env {
+		if (*env)[l-i-1] == "ENABLEVENDOR=on" {
+			// If 'ENABLEVENDOR' is on, append '-mod=vendor' to go list command
+			for j := range *args {
+				if (j+2 < len(*args)) && (*args)[j] == "go" && (*args)[j+1] == "list" {
+					*args = append((*args)[:j+2], append([]string{"-mod=vendor"}, (*args)[j+2:]...)...)
+					break
+				}
+			}
+			return
+		}
+	}
+}
+
 type elasticServerHandler struct {
 	canceller
 	server ElasticServer
