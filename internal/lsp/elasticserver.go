@@ -21,36 +21,14 @@ import (
 	"strings"
 )
 
-// NewClientElasticServer
-func NewClientElasticServer(ctx context.Context, cache source.Cache, client protocol.Client) *ElasticServer {
-	return &ElasticServer{
-		Server: Server{
-			client:  client,
-			session: cache.NewSession(ctx),
-		},
-	}
-}
-
 // NewElasticServer starts an LSP server on the supplied stream, and waits until the
 // stream is closed.
 func NewElasticServer(ctx context.Context, cache source.Cache, stream jsonrpc2.Stream) *ElasticServer {
-	goPath := ""
-	goRoot := ""
-	for _, v := range os.Environ() {
-		if strings.HasPrefix(v, "GOPATH=") {
-			goPath = strings.TrimPrefix(v, "GOPATH=")
-		}
-		if strings.HasPrefix(v, "GOROOT=") {
-			goRoot = strings.TrimPrefix(v, "GOROOT=")
-		}
-	}
-	depsPath := filepath.Join(filepath.Join(goPath, "pkg"), "mod")
-
+	depsPath := filepath.Join(filepath.Join(os.Getenv("GOPATH"), "pkg"), "mod")
 	s := &ElasticServer{
 		DepsPath: depsPath,
-		GoRoot:   goRoot,
+		GoRoot:   os.Getenv("GOROOT"),
 	}
-
 	ctx, s.Conn, s.client = protocol.NewElasticServer(ctx, stream, s)
 	s.session = cache.NewSession(ctx)
 	return s
