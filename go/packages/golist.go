@@ -644,7 +644,7 @@ var (
 	goListLRUEntries     = 16 * 32
 )
 
-func golistDriverLRUCached(cfg *Config, rootsDirs func() map[string]string, words ...string) (*driverResponse, error) {
+func golistDriverLRUCached(cfg *Config, rootsDirs func() *goInfo, words ...string) (*driverResponse, error) {
 	createGoListLRUCache.Do(func() {
 		goListLRUCache, _ = lru.New(goListLRUEntries)
 	})

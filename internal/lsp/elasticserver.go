@@ -93,10 +93,11 @@ func (s *ElasticServer) RunElasticServer(ctx context.Context) error {
 func (s *ElasticServer) EDefinition(ctx context.Context, params *protocol.TextDocumentPositionParams) ([]protocol.SymbolLocator, error) {
 	uri := span.NewURI(params.TextDocument.URI)
 	view := s.session.ViewOf(uri)
-	f, m, err := getGoFile(ctx, view, uri)
+	f, err := getGoFile(ctx, view, uri)
 	if err != nil {
 		return nil, err
 	}
+	m, err := getMapper(ctx, f)
 	spn, err := m.PointSpan(params.Position)
 	if err != nil {
 		return nil, err
@@ -117,15 +118,19 @@ func (s *ElasticServer) EDefinition(ctx context.Context, params *protocol.TextDo
 	}
 	qname := getQName(ctx, f, declObj, kind)
 
-	declSpan, err := ident.DeclarationRange().Span()
+	decSpan, err := ident.DeclarationRange().Span()
 	if err != nil {
 		return nil, err
 	}
-	_, decM, err := getSourceFile(ctx, view, declSpan.URI())
+	decFile, err := getGoFile(ctx, view, decSpan.URI())
 	if err != nil {
 		return nil, err
 	}
-	loc, err := decM.Location(declSpan)
+	decM, err := getMapper(ctx, decFile)
+	if err != nil {
+		return nil, err
+	}
+	loc, err := decM.Location(decSpan)
 	if err != nil {
 		return nil, err
 	}
@@ -156,15 +161,16 @@ func (s *ElasticServer) Full(ctx context.Context, fullParams *protocol.FullParam
 		return fullResponse, nil
 	}
 	view := s.session.ViewOf(uri)
-	f, _, err := getGoFile(ctx, view, uri)
+	f, err := getGoFile(ctx, view, uri)
 	if err != nil {
 		return fullResponse, err
 	}
 	path := f.URI().Filename()
-	if f.GetPackage(ctx) == nil {
+	pkg, err := f.GetPackage(ctx)
+	if err != nil {
 		return fullResponse, err
 	}
-	pkgLocator, _ := collectPkgMetadata(f.GetPackage(ctx).GetTypes(), view.Folder().Filename(), s, path)
+	pkgLocator, _ := collectPkgMetadata(pkg.GetTypes(), view.Folder().Filename(), s, path)
 
 	detailSyms, err := constructDetailSymbol(s, ctx, &params, &pkgLocator)
 	if err != nil {
@@ -605,7 +611,12 @@ func getDeclObj(ctx context.Context, f source.GoFile, pos token.Pos) types.Objec
 	case *ast.SelectorExpr:
 		astIdent = node.Sel
 	}
-	return f.GetPackage(ctx).GetTypesInfo().ObjectOf(astIdent)
+	pkg, err := f.GetPackage(ctx)
+	if err != nil {
+		return nil
+	}
+
+	return pkg.GetTypesInfo().ObjectOf(astIdent)
 }
 
 func constructDetailSymbol(s *ElasticServer, ctx context.Context, params *protocol.DocumentSymbolParams, pkgLocator *protocol.PackageLocator) (detailSyms []protocol.DetailSymbolInformation, err error) {
