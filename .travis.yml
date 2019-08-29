@@ -35,7 +35,7 @@ matrix:
         - go test ./internal/lsp
         - mkdir build
         - cd build
-        - go build -ldflags "-s -w" -o go-langserver $GOPATH/src/golang.org/x/tools/cmd/gopls
+        - go build -ldflags "-s -w" -o go-langserver $GOPATH/src/golang.org/x/tools/gopls
         - curl -o go1.12.7.linux-amd64.tar.gz https://dl.google.com/go/go1.12.7.linux-amd64.tar.gz
         - tar xzf go1.12.7.linux-amd64.tar.gz
         - rm -rf ./go/test
@@ -61,7 +61,7 @@ matrix:
 #        - go test ./internal/lsp
 #        - mkdir build
 #        - cd build
-#        - go build -ldflags -o go-langserver $GOPATH/src/golang.org/x/tools/cmd/gopls
+#        - go build -ldflags -o go-langserver $GOPATH/src/golang.org/x/tools/gopls
 #        - curl -o go1.12.7.linux-386.tar.gz https://dl.google.com/go/go1.12.7.linux-386.tar.gz
 #        - tar xzf go1.12.7.linux-386.tar.gz
 #        - rm -rf ./go/test
@@ -87,7 +87,7 @@ matrix:
         - go test ./internal/lsp
         - mkdir build
         - cd build
-        - go build -ldflags "-s -w" -o go-langserver $GOPATH/src/golang.org/x/tools/cmd/gopls
+        - go build -ldflags "-s -w" -o go-langserver $GOPATH/src/golang.org/x/tools/gopls
         - curl -o go1.12.7.darwin-amd64.tar.gz https://dl.google.com/go/go1.12.7.darwin-amd64.tar.gz
         - tar xzf go1.12.7.darwin-amd64.tar.gz
         - rm -rf ./go/test
