@@ -653,6 +653,11 @@ func golistDriverLRUCached(cfg *Config, rootsDirs func() *goInfo, words ...strin
 	h.Write([]byte(cfg.Dir))
 	h.Write([]byte(words[len(words)-1]))
 	hashKey := h.Sum32()
+	// If this is a temporary `go list ...` invoke, i.e. without deps information query. Don't entangle it with the go
+	// list cache.
+	if cfg.Mode&(NeedImports|NeedTypes|NeedSyntax|NeedTypesInfo) == 0 {
+		return golistDriver(cfg, rootsDirs, words...)
+	}
 	if val, ok := goListLRUCache.Get(hashKey); ok {
 		res := val.(goListResult)
 		return res.response, res.err

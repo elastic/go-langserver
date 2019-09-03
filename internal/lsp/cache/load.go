@@ -86,6 +86,16 @@ func (v *view) checkMetadata(ctx context.Context, f *goFile) (map[packageID]*met
 	ctx, done := trace.StartSpan(ctx, "packages.Load", telemetry.File.Of(f.filename()))
 	defer done()
 	pkgs, err := packages.Load(v.Config(ctx), fmt.Sprintf("file=%s", f.filename()))
+	// Give another try with loose mode to load the packages for current file.
+	if len(pkgs) == 0 {
+		cfg := v.Config(ctx)
+		cfg.Tests = false
+		// Remove any dependency require mode.
+		cfg.Mode = packages.NeedName |
+			packages.NeedFiles |
+			packages.NeedCompiledGoFiles
+		pkgs, err = packages.Load(cfg, fmt.Sprintf("file=%s", f.filename()))
+	}
 	if len(pkgs) == 0 {
 		if err == nil {
 			err = errors.Errorf("go/packages.Load: no packages found for %s", f.filename())
