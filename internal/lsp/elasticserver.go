@@ -2,6 +2,7 @@ package lsp
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"go/ast"
 	"go/token"
@@ -11,13 +12,18 @@ import (
 	"golang.org/x/tools/internal/jsonrpc2"
 	"golang.org/x/tools/internal/lsp/protocol"
 	"golang.org/x/tools/internal/lsp/source"
+	"golang.org/x/tools/internal/lsp/telemetry"
 	"golang.org/x/tools/internal/semver"
 	"golang.org/x/tools/internal/span"
+	"golang.org/x/tools/internal/telemetry/log"
 	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -172,7 +178,7 @@ type WorkspaceFolderMeta struct {
 // manageDeps will explore the workspace folders sent from the client and give a whole picture of them. Besides that,
 // manageDeps will try its best to convert the folders to modules. The core functions, like deps downloading and deps
 // management, will be implemented in the package 'cache'.
-func (s ElasticServer) ManageDeps(folders *[]protocol.WorkspaceFolder) error {
+func (s ElasticServer) ManageDeps(ctx context.Context, folders *[]protocol.WorkspaceFolder) error {
 	// In order to handle the modules separately, we consider different modules as different workspace folders, so we
 	// can manage the dependency of different modules separately.
 	for _, folder := range *folders {
@@ -180,7 +186,7 @@ func (s ElasticServer) ManageDeps(folders *[]protocol.WorkspaceFolder) error {
 		if folder.URI != "" {
 			metadata.URI = span.NewURI(folder.URI)
 		}
-		if err := collectWorkspaceFolderMetadata(metadata); err != nil {
+		if err := collectWorkspaceFolderMetadata(ctx, metadata); err != nil {
 			return err
 		}
 		// Convert the module folders to the workspace folders.
@@ -461,7 +467,7 @@ func normalizePath(path, dir, repoURI, depsPath string) string {
 
 // collectWorkspaceFolderMetadata explores the workspace folder to collects the meta information of the folder. And
 // create a new 'go.mod' if necessary to cover all the source files.
-func collectWorkspaceFolderMetadata(metadata *WorkspaceFolderMeta) error {
+func collectWorkspaceFolderMetadata(ctx context.Context, metadata *WorkspaceFolderMeta) error {
 	rootPath := metadata.URI.Filename()
 	// Collect 'go.mod' and record them as workspace folders.
 	if err := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
@@ -501,10 +507,9 @@ func collectWorkspaceFolderMetadata(metadata *WorkspaceFolderMeta) error {
 	}
 
 	for _, path := range folderNeedMod {
-		cmd := exec.Command("go", "mod", "init", path)
-		cmd.Dir = path
-		if err := cmd.Run(); err != nil {
-			return err
+		if err := goModInit(path); err != nil {
+			log.Error(ctx, "error when initializing module", err, telemetry.File)
+			continue
 		}
 		metadata.moduleFolders = append(metadata.moduleFolders, path)
 	}
@@ -634,4 +639,105 @@ func constructDetailSymbol(s *ElasticServer, ctx context.Context, params *protoc
 
 	flattenDocumentSymbol(&docSyms, "", "")
 	return
+}
+
+var (
+	importCommentRE = regexp.MustCompile(`(?m)^package[ \t]+[^ \t\r\n/]+[ \t]+//[ \t]+import[ \t]+(\"[^"]+\")[ \t]*\r?\n`)
+)
+
+func goModInit(folder string) error {
+	// findModulePath copied from 'go/src/cmd/go/internal/modload/init.go'.
+	// TODO(henrywong) The best approach to guess the module path is `go mod init`, see
+	//  https://github.com/golang/go/blob/release-branch.go1.12/src/cmd/go/alldocs.go#L1040. However in order to get rid
+	//  of the external binary invoke, copy the key part which used to guess the module path.
+	findModulePath := func() (string, error) {
+		findImportComment := func(file string) string {
+			data, err := ioutil.ReadFile(file)
+			if err != nil {
+				return ""
+			}
+			m := importCommentRE.FindSubmatch(data)
+			if m == nil {
+				return ""
+			}
+			path, err := strconv.Unquote(string(m[1]))
+			if err != nil {
+				return ""
+			}
+			return path
+		}
+		// TODO(bcmills): once we have located a plausible module path, we should
+		// query version control (if available) to verify that it matches the major
+		// version of the most recent tag.
+		// See https://golang.org/issue/29433, https://golang.org/issue/27009, and
+		// https://golang.org/issue/31549.
+
+		// Cast about for import comments,
+		// first in top-level directory, then in subdirectories.
+		list, _ := ioutil.ReadDir(folder)
+		for _, info := range list {
+			if info.Mode().IsRegular() && strings.HasSuffix(info.Name(), ".go") {
+				if com := findImportComment(filepath.Join(folder, info.Name())); com != "" {
+					return com, nil
+				}
+			}
+		}
+		for _, info1 := range list {
+			if info1.IsDir() {
+				files, _ := ioutil.ReadDir(filepath.Join(folder, info1.Name()))
+				for _, info2 := range files {
+					if info2.Mode().IsRegular() && strings.HasSuffix(info2.Name(), ".go") {
+						if com := findImportComment(filepath.Join(folder, info1.Name(), info2.Name())); com != "" {
+							return path.Dir(com), nil
+						}
+					}
+				}
+			}
+		}
+
+		// Look for Godeps.json declaring import path.
+		data, _ := ioutil.ReadFile(filepath.Join(folder, "Godeps/Godeps.json"))
+		var cfg1 struct{ ImportPath string }
+		json.Unmarshal(data, &cfg1)
+		if cfg1.ImportPath != "" {
+			return cfg1.ImportPath, nil
+		}
+
+		// Look for vendor.json declaring import path.
+		data, _ = ioutil.ReadFile(filepath.Join(folder, "vendor/vendor.json"))
+		var cfg2 struct{ RootPath string }
+		json.Unmarshal(data, &cfg2)
+		if cfg2.RootPath != "" {
+			return cfg2.RootPath, nil
+		}
+		msg := `cannot determine module path for source directory %s (outside GOPATH, module path must be specified)`
+		return "", fmt.Errorf(msg, folder)
+	}
+	constructModulePath := func() (modulePath string) {
+		list := strings.Split(folder, string(filepath.Separator)+"__")
+		if len(list) != 2 {
+			return folder
+		}
+		prefixList := strings.Split(list[0], string(filepath.Separator))
+		suffixList := strings.Split(list[1], string(filepath.Separator))
+		if len(prefixList) < 4 {
+			return folder
+		}
+		// concatenate 'code host/owner/repo'
+		modulePath = strings.Join(prefixList[len(prefixList)-3:], "/")
+		if len(suffixList) < 3 {
+			return
+		}
+		// Skip the dummy hash folder and branch name, concatenates remain elements for the submodule cases.
+		modulePath = strings.Join(append([]string{modulePath}, suffixList[2:]...), "/")
+		return
+	}
+	modulePath, err := findModulePath()
+	if err != nil {
+		// If guess failed, try to construct the module path by our own.
+		modulePath = constructModulePath()
+	}
+	cmd := exec.Command("go", "mod", "init", modulePath)
+	cmd.Dir = folder
+	return cmd.Run()
 }

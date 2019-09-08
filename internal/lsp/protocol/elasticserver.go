@@ -11,7 +11,7 @@ type ElasticServer interface {
 	Server
 	EDefinition(context.Context, *TextDocumentPositionParams) ([]SymbolLocator, error)
 	Full(context.Context, *FullParams) (FullResponse, error)
-	ManageDeps(folders *[]WorkspaceFolder) error
+	ManageDeps(context.Context, *[]WorkspaceFolder) error
 }
 
 func AdjustGoListForVendorMode(env *[]string, args *[]string) {
@@ -55,7 +55,7 @@ func (h elasticServerHandler) Deliver(ctx context.Context, r *jsonrpc2.Request, 
 			sendParseError(ctx, r, err)
 			return true
 		}
-		if err := h.server.ManageDeps(&params.Event.Added); err != nil {
+		if err := h.server.ManageDeps(ctx, &params.Event.Added); err != nil {
 			log.Error(ctx, "", err)
 		}
 		if err := h.server.DidChangeWorkspaceFolders(ctx, &params); err != nil {
@@ -239,7 +239,7 @@ func (h elasticServerHandler) Deliver(ctx context.Context, r *jsonrpc2.Request, 
 			sendParseError(ctx, r, err)
 			return true
 		}
-		if err := h.server.ManageDeps(&params.WorkspaceFolders); err != nil {
+		if err := h.server.ManageDeps(ctx, &params.WorkspaceFolders); err != nil {
 			log.Error(ctx, "", err)
 		}
 		resp, err := h.server.Initialize(ctx, &params)
