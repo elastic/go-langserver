@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"go/ast"
-	"go/token"
 	"go/types"
 	"golang.org/x/tools/go/ast/astutil"
 	"golang.org/x/tools/go/vcs"
@@ -27,17 +26,18 @@ import (
 	"strings"
 )
 
+var (
+	pkgMod = filepath.Join(os.Getenv("GOPATH"), "pkg", "mod")
+	goRoot = os.Getenv("GOROOT")
+)
+
 // NewElasticServer starts an LSP server on the supplied stream, and waits until the
 // stream is closed.
-func NewElasticServer(ctx context.Context, cache source.Cache, stream jsonrpc2.Stream) *ElasticServer {
-	depsPath := filepath.Join(filepath.Join(os.Getenv("GOPATH"), "pkg"), "mod")
-	s := &ElasticServer{
-		DepsPath: depsPath,
-		GoRoot:   os.Getenv("GOROOT"),
-	}
+func NewElasticServer(ctx context.Context, cache source.Cache, stream jsonrpc2.Stream) (context.Context, *ElasticServer) {
+	s := &ElasticServer{}
 	ctx, s.Conn, s.client = protocol.NewElasticServer(ctx, stream, s)
 	s.session = cache.NewSession(ctx)
-	return s
+	return ctx, s
 }
 
 // RunElasticServerOnPort starts an LSP server on the given port and does not exit.
@@ -58,15 +58,13 @@ func RunElasticServerOnAddress(ctx context.Context, cache source.Cache, addr str
 		if err != nil {
 			return err
 		}
-		h(ctx, NewElasticServer(ctx, cache, jsonrpc2.NewHeaderStream(conn, conn)))
+		h(NewElasticServer(ctx, cache, jsonrpc2.NewHeaderStream(conn, conn)))
 	}
 }
 
 // ElasticServer "inherits" from lsp.server and is used to implement the elastic extension for the official go lsp.
 type ElasticServer struct {
 	Server
-	DepsPath string
-	GoRoot   string
 }
 
 func (s *ElasticServer) RunElasticServer(ctx context.Context) error {
@@ -74,57 +72,36 @@ func (s *ElasticServer) RunElasticServer(ctx context.Context) error {
 }
 
 // EDefinition has almost the same functionality with Definition except for the qualified name and symbol kind.
-func (s *ElasticServer) EDefinition(ctx context.Context, params *protocol.TextDocumentPositionParams) ([]protocol.SymbolLocator, error) {
+func (s *ElasticServer) EDefinition(ctx context.Context, params *protocol.DefinitionParams) ([]protocol.SymbolLocator, error) {
 	uri := span.NewURI(params.TextDocument.URI)
 	view := s.session.ViewOf(uri)
 	f, err := getGoFile(ctx, view, uri)
 	if err != nil {
 		return nil, err
 	}
-	m, err := getMapper(ctx, f)
-	spn, err := m.PointSpan(params.Position)
+	ident, err := source.Identifier(ctx, view, f, params.Position)
 	if err != nil {
 		return nil, err
 	}
-	rng, err := spn.Range(m.Converter)
+	declRange, err := ident.Declaration.Range()
 	if err != nil {
 		return nil, err
 	}
-	ident, err := source.Identifier(ctx, f, rng.Start)
-	if err != nil {
-		return nil, err
-	}
-
-	declObj := getDeclObj(ctx, f, rng.Start)
+	declObj := ident.GetDeclObject()
 	kind := getSymbolKind(declObj)
 	if kind == 0 {
 		return nil, fmt.Errorf("no corresponding symbol kind for '" + ident.Name + "'")
 	}
 	qname := getQName(ctx, f, declObj, kind)
-
-	decSpan, err := ident.DeclarationRange().Span()
-	if err != nil {
-		return nil, err
+	declURI := ident.Declaration.URI()
+	declPath := declURI.Filename()
+	pkgLocator, scheme := collectPkgMetadata(declObj.Pkg(), view.Folder().Filename(), declPath)
+	declPath = normalizePath(declPath, view.Folder().Filename(), strings.TrimPrefix(pkgLocator.RepoURI, scheme), pkgMod)
+	loc := protocol.Location{
+		URI:   normalizeLoc(declURI.Filename(), pkgMod, &pkgLocator, declPath),
+		Range: declRange,
 	}
-	decFile, err := getGoFile(ctx, view, decSpan.URI())
-	if err != nil {
-		return nil, err
-	}
-	decM, err := getMapper(ctx, decFile)
-	if err != nil {
-		return nil, err
-	}
-	loc, err := decM.Location(decSpan)
-	if err != nil {
-		return nil, err
-	}
-
-	path := strings.TrimPrefix(loc.URI, "file://")
-	pkgLocator, scheme := collectPkgMetadata(declObj.Pkg(), view.Folder().Filename(), s, path)
-	path = normalizePath(path, view.Folder().Filename(), strings.TrimPrefix(pkgLocator.RepoURI, scheme), s.DepsPath)
-	loc.URI = normalizeLoc(loc.URI, s.DepsPath, &pkgLocator, path)
-
-	return []protocol.SymbolLocator{{Qname: qname, Kind: kind, Path: path, Loc: loc, Package: pkgLocator}}, nil
+	return []protocol.SymbolLocator{{Qname: qname, Kind: kind, Path: declPath, Loc: loc, Package: pkgLocator}}, nil
 }
 
 const (
@@ -154,7 +131,7 @@ func (s *ElasticServer) Full(ctx context.Context, fullParams *protocol.FullParam
 	if err != nil {
 		return fullResponse, err
 	}
-	pkgLocator, _ := collectPkgMetadata(pkg.GetTypes(), view.Folder().Filename(), s, path)
+	pkgLocator, _ := collectPkgMetadata(pkg.GetTypes(), view.Folder().Filename(), path)
 
 	detailSyms, err := constructDetailSymbol(s, ctx, &params, &pkgLocator)
 	if err != nil {
@@ -265,27 +242,27 @@ func getQName(ctx context.Context, f source.GoFile, declObj types.Object, kind p
 	if kind == protocol.Package {
 		return qname
 	}
-	// Get the file where the symbol definition located.
-	fAST, _ := f.GetAST(ctx, source.ParseFull)
+	fh := f.Handle(ctx)
+	fAST, _ := f.View().Session().Cache().ParseGoHandle(fh, source.ParseFull).Parse(ctx)
 	if fAST == nil {
 		return ""
 	}
 	pos := declObj.Pos()
-	path, _ := astutil.PathEnclosingInterval(fAST, pos, pos)
+	astPath, _ := astutil.PathEnclosingInterval(fAST, pos, pos)
 	// TODO(henrywong) Should we put a check here for the case of only one node?
-	for id, n := range path[1:] {
+	for id, n := range astPath[1:] {
 		switch n.(type) {
 		case *ast.StructType:
 			// Check its father to decide whether the ast.StructType is a named type or an anonymous type.
-			switch path[id+2].(type) {
+			switch astPath[id+2].(type) {
 			case *ast.TypeSpec:
 				// ident is located in a named struct declaration, add the type name into the qualified name.
-				ts, _ := path[id+2].(*ast.TypeSpec)
+				ts, _ := astPath[id+2].(*ast.TypeSpec)
 				qname = ts.Name.Name + "." + qname
 			case *ast.Field:
 				// ident is located in a anonymous struct declaration which used to define a field, like struct fields,
 				// function parameters, function named return parameters, add the field name into the qualified name.
-				field, _ := path[id+2].(*ast.Field)
+				field, _ := astPath[id+2].(*ast.Field)
 				if len(field.Names) != 0 {
 					// If there is a bunch of fields declared with same anonymous struct type, just consider the first field's
 					// name.
@@ -295,7 +272,7 @@ func getQName(ctx context.Context, f source.GoFile, declObj types.Object, kind p
 			case *ast.ValueSpec:
 				// ident is located in a anonymous struct declaration which used define a variable, add the variable name into
 				// the qualified name.
-				vs, _ := path[id+2].(*ast.ValueSpec)
+				vs, _ := astPath[id+2].(*ast.ValueSpec)
 				if len(vs.Names) != 0 {
 					// If there is a bunch of variables declared with same anonymous struct type, just consider the first
 					// variable's name.
@@ -304,9 +281,9 @@ func getQName(ctx context.Context, f source.GoFile, declObj types.Object, kind p
 			}
 		case *ast.InterfaceType:
 			// Check its father to get the interface name.
-			switch path[id+2].(type) {
+			switch astPath[id+2].(type) {
 			case *ast.TypeSpec:
-				ts, _ := path[id+2].(*ast.TypeSpec)
+				ts, _ := astPath[id+2].(*ast.TypeSpec)
 				qname = ts.Name.Name + "." + qname
 			}
 
@@ -344,9 +321,9 @@ func getQName(ctx context.Context, f source.GoFile, declObj types.Object, kind p
 
 			// Check its ancestors to decide where it is located in, like a assignment, variable declaration, or a
 			// return statement.
-			switch path[id+2].(type) {
+			switch astPath[id+2].(type) {
 			case *ast.AssignStmt:
-				as, _ := path[id+2].(*ast.AssignStmt)
+				as, _ := astPath[id+2].(*ast.AssignStmt)
 				if i, ok := as.Lhs[0].(*ast.Ident); ok {
 					qname = i.Name + "." + qname
 				}
@@ -361,39 +338,32 @@ func getQName(ctx context.Context, f source.GoFile, declObj types.Object, kind p
 
 // collectPackageMetadata collects metadata for the packages where the specified symbols located and the scheme, i.e.
 // URL prefix, of the repository which the packages belong to.
-func collectPkgMetadata(pkg *types.Package, dir string, s *ElasticServer, loc string) (protocol.PackageLocator, string) {
-	pkgLocator := protocol.PackageLocator{
-		Version: "",
-		Name:    "",
-		RepoURI: "",
-	}
-	// Get the package where the symbol belongs to.
+func collectPkgMetadata(pkg *types.Package, dir string, loc string) (protocol.PackageLocator, string) {
 	if pkg == nil {
-		return pkgLocator, ""
+		return protocol.PackageLocator{}, ""
 	}
-	pkgLocator.Name = pkg.Name()
-	pkgLocator.RepoURI = pkg.Path()
-
+	pkgLocator := protocol.PackageLocator{
+		Name:    pkg.Name(),
+		RepoURI: pkg.Path(),
+	}
 	// If the location is inside the current project or the location from standard library, there is no need to resolve
 	// the revision.
-	if strings.HasPrefix(loc, dir) || strings.HasPrefix(loc, s.GoRoot) {
+	if strings.HasPrefix(loc, dir) || strings.HasPrefix(loc, goRoot) {
 		return pkgLocator, ""
 	}
-
-	getPkgVersion(s, dir, &pkgLocator, loc)
+	getPkgVersion(dir, &pkgLocator, loc)
 	repoRoot, err := vcs.RepoRootForImportPath(pkg.Path(), false)
 	if err == nil {
 		pkgLocator.RepoURI = repoRoot.Repo
 		return pkgLocator, strings.TrimSuffix(repoRoot.Repo, repoRoot.Root)
 	}
-
 	return pkgLocator, ""
 }
 
 // getPkgVersion collects the version information for a specified package, the version information will be one of the
 // two forms semver format and prefix of a commit hash.
-func getPkgVersion(s *ElasticServer, dir string, pkgLoc *protocol.PackageLocator, loc string) {
-	rev := getPkgVersionFast(strings.TrimPrefix(loc, filepath.Join(s.DepsPath, dir)))
+func getPkgVersion(dir string, pkgLoc *protocol.PackageLocator, loc string) {
+	rev := getPkgVersionFast(strings.TrimPrefix(loc, filepath.Join(pkgMod, dir)))
 	if rev == "" {
 		if err := getPkgVersionSlow(); err != nil {
 			return
@@ -575,31 +545,6 @@ func collectUncoveredSrc(path string) ([][]string, []string, error) {
 		folderUncovered = append(folderUncovered, strings.Split(path, string(filepath.Separator)))
 	}
 	return folderUncovered, folderNeedMod, err
-}
-
-// TODO(henrywong) Upstream has made the declaration object of the selected symbol as a private field, so we have to
-//  construct the declaration object by ourselves. Given that upstream has trimmed the ast of the dependencies to reduce
-//  the usage of the memory, this construction will parse the AST of the dependent source file for every call and bring
-//  neglect overhead.
-func getDeclObj(ctx context.Context, f source.GoFile, pos token.Pos) types.Object {
-	var astIdent *ast.Ident
-	file, _ := f.GetAST(ctx, source.ParseFull)
-	if file == nil {
-		return nil
-	}
-	astPath, _ := astutil.PathEnclosingInterval(file, pos, pos)
-	switch node := astPath[0].(type) {
-	case *ast.Ident:
-		astIdent = node
-	case *ast.SelectorExpr:
-		astIdent = node.Sel
-	}
-	pkg, err := f.GetPackage(ctx)
-	if err != nil {
-		return nil
-	}
-
-	return pkg.GetTypesInfo().ObjectOf(astIdent)
 }
 
 func constructDetailSymbol(s *ElasticServer, ctx context.Context, params *protocol.DocumentSymbolParams, pkgLocator *protocol.PackageLocator) (detailSyms []protocol.DetailSymbolInformation, err error) {

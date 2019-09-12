@@ -55,6 +55,8 @@ type Options struct {
 	PreferredContentFormat        protocol.MarkupKind
 	LineFoldingOnly               bool
 
+	InstallGoDependency bool
+
 	SupportedCodeActions map[FileKind]map[protocol.CodeActionKind]bool
 
 	// TODO: Remove the option once we are certain there are no issues here.
@@ -236,6 +238,8 @@ func (o *Options) set(name string, value interface{}) OptionResult {
 	case "wantUnimportedCompletions":
 		result.State = OptionDeprecated
 		result.Replacement = "completeUnimported"
+	case "installGoDependency":
+		result.setBool(&o.InstallGoDependency)
 
 	default:
 		result.State = OptionUnexpected

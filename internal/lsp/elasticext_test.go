@@ -60,24 +60,17 @@ func testLSPExt(t *testing.T, exporter packagestest.Exporter) {
 
 	cache := cache.New()
 	session := cache.NewSession(ctx)
-	view := session.NewView(cfg.Context, extViewName, span.FileURI(cfg.Dir))
-	view.SetEnv(cfg.Env)
+	options := session.Options()
+	options.Env = cfg.Env
+	session.NewView(cfg.Context, extViewName, span.FileURI(cfg.Dir), options)
 	s := &Server{
 		session:     session,
 		undelivered: make(map[span.URI][]source.Diagnostic),
 	}
-	goPath := ""
-	goRoot := ""
-	for _, v := range os.Environ() {
-		if strings.HasPrefix(v, "GOPATH=") {
-			goPath = strings.TrimPrefix(v, "GOPATH=")
-		}
-		if strings.HasPrefix(v, "GOROOT=") {
-			goRoot = strings.TrimPrefix(v, "GOROOT=")
-		}
-	}
-	depsPath := filepath.Join(filepath.Join(goPath, "pkg"), "mod")
-	es := &ElasticServer{*s, depsPath, goRoot}
+	var (
+		pkgMod = filepath.Join(os.Getenv("GOPATH"), "pkg", "mod")
+	)
+	es := &ElasticServer{*s}
 
 	expectedQNameKinds := make(QnameKindMap)
 	expectedPkgLocators := make(PkgMap)
@@ -150,12 +143,12 @@ func testLSPExt(t *testing.T, exporter packagestest.Exporter) {
 		for _, v := range testdata {
 			var path string
 			if v.LocatedDeps {
-				path = filepath.Join(depsPath, v.Path)
+				path = filepath.Join(pkgMod, v.Path)
 			} else {
 				path = filepath.Join(cfg.Dir, v.Path)
 			}
 			pkgLoc := protocol.PackageLocator{RepoURI: v.RepoURI}
-			pathGot := normalizePath(path, cfg.Dir, pkgLoc.RepoURI, es.DepsPath)
+			pathGot := normalizePath(path, cfg.Dir, pkgLoc.RepoURI, pkgMod)
 			if pathGot != v.PathWant {
 				t.Errorf("got %v expected %v", pathGot, v.PathWant)
 			}
@@ -207,11 +200,13 @@ type FullSymMap map[protocol.Location]DetailSymInfo
 
 func (qk QnameKindMap) test(t *testing.T, s *ElasticServer) {
 	for src, target := range qk {
-		params := &protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{
-				URI: src.URI,
+		params := &protocol.DefinitionParams{
+			TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+				TextDocument: protocol.TextDocumentIdentifier{
+					URI: src.URI,
+				},
+				Position: src.Range.Start,
 			},
-			Position: src.Range.Start,
 		}
 		var symLocators []protocol.SymbolLocator
 		var err error
@@ -245,11 +240,13 @@ func (qk QnameKindMap) collect(e *packagestest.Exported, fset *token.FileSet, sr
 
 func (ps PkgMap) test(t *testing.T, s *ElasticServer) {
 	for src, target := range ps {
-		params := &protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{
-				URI: src.URI,
+		params := &protocol.DefinitionParams{
+			TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+				TextDocument: protocol.TextDocumentIdentifier{
+					URI: src.URI,
+				},
+				Position: src.Range.Start,
 			},
-			Position: src.Range.Start,
 		}
 		var symLocators []protocol.SymbolLocator
 		var err error
@@ -316,7 +313,7 @@ func (fs FullSymMap) test(t *testing.T, s *ElasticServer) {
 		dataMap[src.Range.Start.Line] = data
 	}
 
-	for index, _ := range resultsMap {
+	for index := range resultsMap {
 		data, ok := dataMap[index]
 		if !ok {
 			t.Errorf("Full Symbol: got unexpected result %v at %v", resultsMap[index], index)

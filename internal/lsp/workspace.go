@@ -34,7 +34,8 @@ func (s *Server) changeFolders(ctx context.Context, event protocol.WorkspaceFold
 }
 
 func (s *Server) addView(ctx context.Context, name string, uri span.URI) error {
-	if s.installGoDependency {
+	options := s.session.Options()
+	if options.InstallGoDependency {
 		cmd := exec.Command("go", "mod", "download")
 		cmd.Dir = uri.Filename()
 		if err := cmd.Run(); err != nil {
@@ -44,7 +45,6 @@ func (s *Server) addView(ctx context.Context, name string, uri span.URI) error {
 		// If we disable the go dependency download, trying to find the deps from the vendor folder.
 		ctx = context.WithValue(ctx, "ENABLEVENDOR", true)
 	}
-	view := s.session.NewView(ctx, name, uri)
 	s.stateMu.Lock()
 	state := s.state
 	s.stateMu.Unlock()
@@ -52,7 +52,6 @@ func (s *Server) addView(ctx context.Context, name string, uri span.URI) error {
 		return errors.Errorf("addView called before server initialized")
 	}
 
-	options := s.session.Options()
 	s.fetchConfig(ctx, name, uri, &options)
 	s.session.NewView(ctx, name, uri, options)
 	return nil

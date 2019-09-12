@@ -82,7 +82,7 @@ func (s *Serve) Run(ctx context.Context, args ...string) error {
 	}
 
 	// For debugging purposes only.
-	run := func(ctx context.Context, srv *lsp.Server) {
+	run := func(ctx context.Context, srv *lsp.ElasticServer) {
 		go srv.Run(ctx)
 	}
 	if s.Address != "" {

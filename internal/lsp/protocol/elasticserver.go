@@ -9,7 +9,7 @@ import (
 
 type ElasticServer interface {
 	Server
-	EDefinition(context.Context, *TextDocumentPositionParams) ([]SymbolLocator, error)
+	EDefinition(context.Context, *DefinitionParams) ([]SymbolLocator, error)
 	Full(context.Context, *FullParams) (FullResponse, error)
 	ManageDeps(context.Context, *[]WorkspaceFolder) error
 }
@@ -168,7 +168,7 @@ func (h elasticServerHandler) Deliver(ctx context.Context, r *jsonrpc2.Request, 
 		}
 		return true
 	case "textDocument/implementation": // req
-		var params TextDocumentPositionParams
+		var params ImplementationParams
 		if err := json.Unmarshal(*r.Params, &params); err != nil {
 			sendParseError(ctx, r, err)
 			return true
@@ -179,7 +179,7 @@ func (h elasticServerHandler) Deliver(ctx context.Context, r *jsonrpc2.Request, 
 		}
 		return true
 	case "textDocument/typeDefinition": // req
-		var params TextDocumentPositionParams
+		var params TypeDefinitionParams
 		if err := json.Unmarshal(*r.Params, &params); err != nil {
 			sendParseError(ctx, r, err)
 			return true
@@ -223,7 +223,7 @@ func (h elasticServerHandler) Deliver(ctx context.Context, r *jsonrpc2.Request, 
 		}
 		return true
 	case "textDocument/declaration": // req
-		var params TextDocumentPositionParams
+		var params DeclarationParams
 		if err := json.Unmarshal(*r.Params, &params); err != nil {
 			sendParseError(ctx, r, err)
 			return true
@@ -234,7 +234,7 @@ func (h elasticServerHandler) Deliver(ctx context.Context, r *jsonrpc2.Request, 
 		}
 		return true
 	case "initialize": // req
-		var params InitializeParams
+		var params ParamInitia
 		if err := json.Unmarshal(*r.Params, &params); err != nil {
 			sendParseError(ctx, r, err)
 			return true
@@ -290,7 +290,7 @@ func (h elasticServerHandler) Deliver(ctx context.Context, r *jsonrpc2.Request, 
 		}
 		return true
 	case "textDocument/hover": // req
-		var params TextDocumentPositionParams
+		var params HoverParams
 		if err := json.Unmarshal(*r.Params, &params); err != nil {
 			sendParseError(ctx, r, err)
 			return true
@@ -301,7 +301,7 @@ func (h elasticServerHandler) Deliver(ctx context.Context, r *jsonrpc2.Request, 
 		}
 		return true
 	case "textDocument/signatureHelp": // req
-		var params TextDocumentPositionParams
+		var params SignatureHelpParams
 		if err := json.Unmarshal(*r.Params, &params); err != nil {
 			sendParseError(ctx, r, err)
 			return true
@@ -312,7 +312,7 @@ func (h elasticServerHandler) Deliver(ctx context.Context, r *jsonrpc2.Request, 
 		}
 		return true
 	case "textDocument/definition": // req
-		var params TextDocumentPositionParams
+		var params DefinitionParams
 		if err := json.Unmarshal(*r.Params, &params); err != nil {
 			sendParseError(ctx, r, err)
 			return true
@@ -323,7 +323,7 @@ func (h elasticServerHandler) Deliver(ctx context.Context, r *jsonrpc2.Request, 
 		}
 		return true
 	case "textDocument/edefinition":
-		var params TextDocumentPositionParams
+		var params DefinitionParams
 		if err := json.Unmarshal(*r.Params, &params); err != nil {
 			sendParseError(ctx, r, err)
 			return true
@@ -345,7 +345,7 @@ func (h elasticServerHandler) Deliver(ctx context.Context, r *jsonrpc2.Request, 
 		}
 		return true
 	case "textDocument/documentHighlight": // req
-		var params TextDocumentPositionParams
+		var params DocumentHighlightParams
 		if err := json.Unmarshal(*r.Params, &params); err != nil {
 			sendParseError(ctx, r, err)
 			return true
@@ -467,7 +467,7 @@ func (h elasticServerHandler) Deliver(ctx context.Context, r *jsonrpc2.Request, 
 		}
 		return true
 	case "textDocument/prepareRename": // req
-		var params TextDocumentPositionParams
+		var params PrepareRenameParams
 		if err := json.Unmarshal(*r.Params, &params); err != nil {
 			sendParseError(ctx, r, err)
 			return true
