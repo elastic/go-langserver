@@ -128,7 +128,12 @@ func (s *ElasticServer) Full(ctx context.Context, fullParams *protocol.FullParam
 		return fullResponse, err
 	}
 	path := f.URI().Filename()
-	pkg, err := f.GetPackage(ctx)
+	cphs, err := f.CheckPackageHandles(ctx)
+	if err != nil {
+		return fullResponse, err
+	}
+	cph := source.NarrowestCheckPackageHandle(cphs)
+	pkg, err := cph.Check(ctx)
 	if err != nil {
 		return fullResponse, err
 	}
@@ -258,8 +263,8 @@ func getQName(ctx context.Context, f source.GoFile, declObj types.Object, kind p
 		return qname
 	}
 	fh := f.Handle(ctx)
-	fAST, _ := f.View().Session().Cache().ParseGoHandle(fh, source.ParseFull).Parse(ctx)
-	if fAST == nil {
+	fAST, _, _, err := f.View().Session().Cache().ParseGoHandle(fh, source.ParseFull).Parse(ctx)
+	if err != nil {
 		return ""
 	}
 	pos := declObj.Pos()

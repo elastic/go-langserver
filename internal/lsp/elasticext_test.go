@@ -217,7 +217,6 @@ func (qk QnameKindMap) test(t *testing.T, s *ElasticServer) {
 		if len(symLocators) != 1 {
 			t.Errorf("got %d locations for qnamekind, expected 1", len(symLocators))
 		}
-
 		if symLocators[0].Qname != target.Qname {
 			t.Errorf("Qname: for %v got %v want %v", src, symLocators[0].Qname, target.Qname)
 		}
@@ -364,6 +363,11 @@ func testLocation(e *packagestest.Exported, fset *token.FileSet, rng packagestes
 	if err != nil {
 		return spn, nil
 	}
-	m := protocol.NewColumnMapper(spn.URI(), f.Name(), fset, f, content)
+	converter := span.NewContentConverter(spn.URI().Filename(), content)
+	m := &protocol.ColumnMapper{
+		URI:       spn.URI(),
+		Converter: converter,
+		Content:   content,
+	}
 	return spn, m
 }
