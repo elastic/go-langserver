@@ -14,17 +14,17 @@ install:
       git fetch origin +refs/pull/$TRAVIS_PULL_REQUEST/merge;
       git checkout -qf FETCH_HEAD;
     fi
+  - go get honnef.co/go/tools/simple
+  - go get honnef.co/go/tools/staticcheck
+  - go get honnef.co/go/tools/stylecheck
 
 git:
   depth: 1
 
 before_install:
-  - go get -t golang.org/x/sync/errgroup
-  - go get -t golang.org/x/xerrors
-  - go get -t github.com/hashicorp/golang-lru
-  - go get -t honnef.co/go/tools/simple
-  - go get -t honnef.co/go/tools/staticcheck
-  - go get -t honnef.co/go/tools/stylecheck
+  - go get golang.org/x/sync/errgroup
+  - go get golang.org/x/xerrors
+  - go get github.com/hashicorp/golang-lru
 
 matrix:
   fast_finish: true
