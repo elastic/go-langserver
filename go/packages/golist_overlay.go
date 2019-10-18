@@ -244,7 +244,7 @@ func determineRootDirsLRUCached(cfg *Config) map[string]string {
 // an overlay file.
 func determineRootDirs(cfg *Config) map[string]string {
 	// Assume modules first:
-	out, err := invokeGo(cfg, "list", "-m", "-json", "all")
+	out, err := invokeGoCached(cfg, "list", "-m", "-json", "all")
 	if err != nil {
 		return determineRootDirsGOPATH(cfg)
 	}
@@ -265,7 +265,7 @@ func determineRootDirs(cfg *Config) map[string]string {
 
 func determineRootDirsGOPATH(cfg *Config) map[string]string {
 	m := map[string]string{}
-	out, err := invokeGo(cfg, "env", "GOPATH")
+	out, err := invokeGoCached(cfg, "env", "GOPATH")
 	if err != nil {
 		// Could not determine root dir mapping. Everything is best-effort, so just return an empty map.
 		// When we try to find the import path for a directory, there will be no root-dir match and
