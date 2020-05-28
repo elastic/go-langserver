@@ -99,19 +99,21 @@ func determineEnv(cfg *Config) goEnv {
 	return env
 }
 
+var (
+	sizes           types.Sizes
+	sizeserr        error
+	runGetSizesOnce sync.Once
+)
+
 // goListDriver uses the go list command to interpret the patterns and produce
 // the build system package structure.
 // See driver for more details.
 func goListDriver(cfg *Config, patterns ...string) (*driverResponse, error) {
-	var sizes types.Sizes
-	var sizeserr error
 	var sizeswg sync.WaitGroup
 	if cfg.Mode&NeedTypesSizes != 0 || cfg.Mode&NeedTypes != 0 {
-		sizeswg.Add(1)
-		go func() {
+		runGetSizesOnce.Do(func() {
 			sizes, sizeserr = getSizes(cfg)
-			sizeswg.Done()
-		}()
+		})
 	}
 
 	// start fetching rootDirs
